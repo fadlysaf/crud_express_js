@@ -1,16 +1,24 @@
 import { Request, Response } from "express";
-import { pool } from "../config/db";
+import * as userService from "../services/userService";
 
-export const getUsers = async (req: Request, res: Response): Promise<void> => {
+/**
+ * GET ALL USERS
+ */
+export const getUsers = async (req: Request, res: Response) => {
   try {
-    const result = await pool.query("SELECT * FROM users ORDER BY id ASC");
-
-    res.json(result.rows);
+    const users = await userService.getAllUsers();
+    res.json(users);
   } catch (error) {
-    res.status(500).json(error);
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to get users",
+    });
   }
 };
 
+/**
+ * CREATE USER
+ */
 export const createUser = async (
   req: Request,
   res: Response,
@@ -18,49 +26,61 @@ export const createUser = async (
   try {
     const { name, email } = req.body;
 
-    const result = await pool.query(
-      "INSERT INTO users(name,email) VALUES($1,$2) RETURNING *",
-      [name, email],
-    );
+    const user = await userService.createUser({ name, email });
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(user);
   } catch (error) {
-    res.status(500).json(error);
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to create user",
+    });
   }
 };
 
+/**
+ * UPDATE USER
+ */
 export const updateUser = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
     const { name, email } = req.body;
 
-    const result = await pool.query(
-      "UPDATE users SET name=$1,email=$2 WHERE id=$3 RETURNING *",
-      [name, email, id],
-    );
+    const user = await userService.updateUser(id, { name, email });
 
-    res.json(result.rows[0]);
+    res.status(200).json(user);
   } catch (error) {
-    res.status(500).json(error);
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to update user",
+    });
   }
 };
 
+/**
+ * DELETE USER
+ */
 export const deleteUser = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
 
-    await pool.query("DELETE FROM users WHERE id=$1", [id]);
+    await userService.deleteUser(id);
 
-    res.json({
-      message: "User deleted",
+    res.status(200).json({
+      message: "User deleted successfully",
     });
   } catch (error) {
-    res.status(500).json(error);
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to delete user",
+    });
   }
 };
